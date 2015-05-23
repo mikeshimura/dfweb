@@ -131,7 +131,9 @@ func EntitySetNull(
 	case "sql.NullString":
 		df.SetEntityValue(entity, propertyName, new(sql.NullString))
 	case "pq.NullTime":
-		df.SetEntityValue(entity, propertyName, new(pq.NullTime))
+		nt:=new(pq.NullTime)
+		nt.Valid=false
+		df.SetEntityValue(entity, propertyName, nt)
 	case "df.NullDate":
 		df.SetEntityValue(entity, propertyName, new(df.NullDate))
 	case "df.NullTimestamp":
