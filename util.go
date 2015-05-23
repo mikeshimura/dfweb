@@ -103,7 +103,7 @@ func EntityToMap(entity *df.Entity, rmap map[string]interface{}, elems []string)
 		rmap[e] = ConvWebData(edata)
 	}
 }
-func MapToEntity(rmap map[string]interface{}, entity *df.Entity, table string) {
+func MapToEntity(rmap map[string]interface{}, entity *df.Entity, table string, update bool) {
 	meta := df.DBMetaProvider_I.TableDbNameInstanceMap[table]
 	for propertyName := range rmap {
 		colInfo := (*meta).GetColumnInfoByPropertyName(propertyName)
@@ -111,11 +111,14 @@ func MapToEntity(rmap map[string]interface{}, entity *df.Entity, table string) {
 			continue
 		}
 		value := rmap[propertyName]
+		if value == nil{
+			continue
+		}
 		argType := df.GetType(value)
 		if argType == "string" {
 			svalue := value.(string)
 			if svalue == "" {
-				EntitySetNull(entity, propertyName, colInfo)
+				EntitySetNull(entity, propertyName, colInfo, update)
 				continue
 			}
 		}
@@ -124,15 +127,15 @@ func MapToEntity(rmap map[string]interface{}, entity *df.Entity, table string) {
 	}
 }
 func EntitySetNull(
-	entity *df.Entity, propertyName string, colInfo *df.ColumnInfo) {
+	entity *df.Entity, propertyName string, colInfo *df.ColumnInfo,update bool) {
 	switch colInfo.GoType {
 	case "string":
 		df.SetEntityValue(entity, propertyName, "")
 	case "sql.NullString":
 		df.SetEntityValue(entity, propertyName, new(sql.NullString))
 	case "pq.NullTime":
-		nt:=new(pq.NullTime)
-		nt.Valid=false
+		nt := new(pq.NullTime)
+		nt.Valid = false
 		df.SetEntityValue(entity, propertyName, nt)
 	case "df.NullDate":
 		df.SetEntityValue(entity, propertyName, new(df.NullDate))
@@ -153,7 +156,9 @@ func EntitySetNull(
 	case "sql.NullBool":
 		df.SetEntityValue(entity, propertyName, new(sql.NullBool))
 	default:
-		panic("必須項目未入力です。 項目名:" + propertyName)
+		if update {
+			panic("必須項目未入力です。 項目名:" + propertyName)
+		}
 	}
 }
 func ConvFromWebData(
@@ -499,11 +504,11 @@ func ConvWebData(arg interface{}) interface{} {
 }
 func Invoke(method reflect.Value, colInfo *df.ColumnInfo,
 	svalue string, lso *df.LikeSearchOption) {
-	param := ConvFromWebData(svalue, colInfo,"string")
+	param := ConvFromWebData(svalue, colInfo, "string")
 	if lso != nil {
 		method.Call([]reflect.Value{reflect.ValueOf(param), reflect.ValueOf(lso)})
 	} else {
-		method.Call([]reflect.Value{reflect.ValueOf(param)}) 
+		method.Call([]reflect.Value{reflect.ValueOf(param)})
 	}
 }
 
