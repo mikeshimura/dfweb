@@ -21,8 +21,11 @@ func ErrorRecover(c *gin.Context, tx *sql.Tx) {
 	errx := recover()
 	if errx != nil {
 		df.TxRollback(tx)
-		fmt.Printf("error %v %T\n",errx,errx)
-		rmap := SetErrorMessage(fmt.Sprintf("%v",errx))
+		errs:=fmt.Sprintf("%v",errx)
+		if errs==""{
+			errs="System Error"
+		}
+		rmap := SetErrorMessage(errs)
 		c.JSON(200, rmap)
 	} else {
 		df.TxCommit(tx)
