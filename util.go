@@ -10,7 +10,6 @@ import (
 	"github.com/mikeshimura/dbflute/df"
 	"io/ioutil"
 	"reflect"
-	"runtime"
 	"strconv"
 	"time"
 )
@@ -22,15 +21,8 @@ func ErrorRecover(c *gin.Context, tx *sql.Tx) {
 	errx := recover()
 	if errx != nil {
 		df.TxRollback(tx)
-		msg := ""
-		switch errx.(type) {
-		case string:
-			msg = errx.(string)
-		case *runtime.TypeAssertionError:
-			e := errx.(*runtime.TypeAssertionError)
-			msg = e.Error()
-		}
-		rmap := SetErrorMessage(msg)
+		fmt.Printf("error %v %T\n",errx,errx)
+		rmap := SetErrorMessage(fmt.Sprintf("%v",errx))
 		c.JSON(200, rmap)
 	} else {
 		df.TxCommit(tx)
