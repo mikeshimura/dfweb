@@ -83,7 +83,7 @@ func GetResponse(data interface{}, status int, startRow int,
 func CreateMd5(data string) string {
 	bytes := []byte(data)
 	res := fmt.Sprintf("%x", md5.Sum(bytes))
-	fmt.Println("hash " + res)
+	//fmt.Println("hash " + res)
 	return res
 }
 
@@ -312,8 +312,166 @@ func ConvFromWebData(
 	}
 	return arg
 }
+func ConvFromWebDataForInvoke(
+	arg interface{}, colInfo *df.ColumnInfo, argType string) interface{} {
+	goType := colInfo.GoType
+	if argType == goType {
+		return arg
+	}
+	switch goType {
+	case "sql.NullString":
+		switch argType {
+		case "string":
+			return arg.(string)
+		}
+	case "int64":
+		switch argType {
+		case "string":
+			cv, err := strconv.ParseInt(arg.(string), 10, 64)
+			if err != nil {
+				panic("int64に変換出来ません:" + arg.(string))
+			}
+			return cv
+		case "float64":
+			return int64(arg.(float64))
+		}
+	case "sql.NullInt64":
+		switch argType {
+		case "string":
+			cv, err := strconv.ParseInt(arg.(string), 10, 64)
+			if err != nil {
+				panic("int64に変換出来ません:" + arg.(string))
+			}
+			return cv
+		case "float64":
+			return int64(arg.(float64))
+		}
+	case "float64":
+		switch argType {
+		case "string":
+			cv, err := strconv.ParseFloat(arg.(string), 64)
+			if err != nil {
+				panic("float64に変換出来ません:" + arg.(string))
+			}
+			return cv
+		case "float64":
+			return arg.(float64)
+		}
+	case "sql.NullFloat64":
+		switch argType {
+		case "string":
+			cv, err := strconv.ParseFloat(arg.(string), 64)
+			if err != nil {
+				panic("float64に変換出来ません:" + arg.(string))
+			}
+			return cv
+		case "float64":
+			return arg.(float64)
+		}
+	case "sql.NullBool":
+		switch argType {
+		case "string":
+			cv, err := strconv.ParseBool(arg.(string))
+			if err != nil {
+				panic("Booleanに変換出来ません:" + arg.(string))
+			}
+			return cv
+		case "bool":
+			return arg.(bool)
+		}
+	case "df.Numeric":
+		switch argType {
+		case "string":
+			cv, err := df.CreateNumeric(arg.(string))
+			if err != nil {
+				panic("Numericに変換出来ません:" + arg.(string))
+			}
+			return cv
+		}
+	case "df.NullNumeric":
+		switch argType {
+		case "string":
+			cv, err := df.CreateNumeric(arg.(string))
+			if err != nil {
+				panic("Numericに変換出来ません:" + arg.(string))
+			}
+			return cv
+		}
+	case "time.Time":
+		switch argType {
+		case "string":
+			res, err := time.Parse(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string))
+			if err != nil {
+				panic("Timeに変換出来ません。：" + arg.(string))
+			}
+			return res
+		}
+	case "df.Date":
+		switch argType {
+		case "string":
+			res, err := time.Parse(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string))
+			if err != nil {
+				panic("Timeに変換出来ません。：" + arg.(string))
+			}
+			return df.CreateDate(res)
+		}
+	case "df.Timestamp":
+		switch argType {
+		case "string":
+			args := arg.(string)
+			parse := df.DISP_SQL_DEFAULT_TIMESTAMP_FORMAT
+			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_FORMAT) {
+				parse = df.DISP_SQL_DEFAULT_DATE_FORMAT
+			}
+			res, err := time.Parse(parse, args)
+			if err != nil {
+				panic("Timestampに変換出来ません。：" + args)
+			}
+			return df.CreateTimestamp(res)
+		}
+	case "pq.NullTime":
+		switch argType {
+		case "string":
+			res, err := time.Parse(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string))
+			if err != nil {
+				panic("Timeに変換出来ません。：" + arg.(string))
+			}
+			return res
+		}
+	case "df.NullDate":
+		switch argType {
+		case "string":
+			res, err := time.Parse(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string))
+			if err != nil {
+				panic("Timeに変換出来ません。：" + arg.(string))
+			}
+			return res
+		}
+	case "df.NullTimestamp":
+		switch argType {
+		case "string":
+			args := arg.(string)
+			parse := df.DISP_SQL_DEFAULT_TIMESTAMP_FORMAT
+			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_FORMAT) {
+				parse = df.DISP_SQL_DEFAULT_DATE_FORMAT
+			}
+			res, err := time.Parse(parse, args)
+			if err != nil {
+				panic("Timestampに変換出来ません。：" + args)
+			}
+			return res
+		}
+	}
 
+	if argType != goType {
+		panic("この組み合わせは規定されていません。 argType:" + argType + " goType:" + goType)
+	}
+	return arg
+}
 func ConvWebData(arg interface{}) interface{} {
+	if arg==nil{
+		return nil
+	}
 	switch arg.(type) {
 	case time.Time:
 		tv := arg.(time.Time)
@@ -499,7 +657,8 @@ func ConvWebData(arg interface{}) interface{} {
 }
 func Invoke(method reflect.Value, colInfo *df.ColumnInfo,
 	svalue string, lso *df.LikeSearchOption) {
-	param := ConvFromWebData(svalue, colInfo, "string")
+	param := ConvFromWebDataForInvoke(svalue, colInfo, "string")
+	//fmt.Printf("param %v %T\n",param,param)
 	if lso != nil {
 		method.Call([]reflect.Value{reflect.ValueOf(param), reflect.ValueOf(lso)})
 	} else {
@@ -535,10 +694,15 @@ func GetOpMap2() map[string]string {
 }
 func SetCriteria(query interface{}, emap map[string]interface{}, table string) {
 	meta := df.DBMetaProvider_I.TableDbNameInstanceMap[table]
+	//fmt.Printf("table %s meta %v\n",table,meta)
 	opMap := GetOpMap()
 	opMap2 := GetOpMap2()
 	field := (emap["fieldName"]).(string)
 	colInfo := (*meta).GetColumnInfoByPropertyName(field)
+	if colInfo==nil{
+		panic("ColInfo Not found :"+field)
+	}
+	//fmt.Printf("colInfo %v gotype %v\n",colInfo,colInfo.GoType)
 	operator := (emap["operator"]).(string)
 	op := opMap[operator]
 	setter := "Set" + df.InitCap(field) + "_" + op
@@ -546,10 +710,10 @@ func SetCriteria(query interface{}, emap map[string]interface{}, table string) {
 	setter2 := "Set" + df.InitCap(field) + "_" + op2
 	start := (emap["start"]).(string)
 	end := (emap["end"]).(string)
-	fmt.Println("setter:" + setter)
-	fmt.Println("sette2:" + setter2)
-	fmt.Printf(" start:%v%T\n", start, start)
-	fmt.Printf("end:%v%T\n", end, end)
+//	fmt.Println("setter:" + setter)
+//	fmt.Println("sette2:" + setter2)
+//	fmt.Printf(" start:%v%T\n", start, start)
+//	fmt.Printf("end:%v%T\n", end, end)
 	if operator == "" || start == "" {
 		return
 	}
