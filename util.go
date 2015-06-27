@@ -156,6 +156,11 @@ func EntitySetNull(
 		}
 	}
 }
+func ConvFromWebDataInd(arg interface{},goType string)	interface{}{
+	colInfo:=new(df.ColumnInfo)
+	colInfo.GoType=goType
+	return ConvFromWebData(arg,colInfo,df.GetType(arg))
+}
 func ConvFromWebData(
 	arg interface{}, colInfo *df.ColumnInfo, argType string) interface{} {
 	goType := colInfo.GoType
