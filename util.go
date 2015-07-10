@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"github.com/mikeshimura/dbflute/df"
+	"github.com/mikeshimura/dbflute/log"
 	"io/ioutil"
 	"reflect"
 	"strconv"
@@ -30,6 +31,7 @@ func ErrorRecover(c *gin.Context, tx *sql.Tx) {
 	} else {
 		df.TxCommit(tx)
 	}
+	log.Flush()
 }
 
 func GetBody(c *gin.Context) []byte {
