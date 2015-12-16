@@ -17,14 +17,21 @@ import (
 
 var OpMap map[string]string
 var OpMap2 map[string]string
+var loc, _ = time.LoadLocation("Asia/Tokyo")
 
+func SetTimeZone(timezone string) {
+	loc, _ = time.LoadLocation(timezone)
+}
+func GetTimeZone() string{
+	return loc.String()
+}
 func ErrorRecover(c *gin.Context, tx *sql.Tx) {
 	errx := recover()
 	if errx != nil {
 		df.TxRollback(tx)
-		errs:=fmt.Sprintf("%v",errx)
-		if errs==""{
-			errs="System Error"
+		errs := fmt.Sprintf("%v", errx)
+		if errs == "" {
+			errs = "System Error"
 		}
 		rmap := SetErrorMessage(errs)
 		c.JSON(200, rmap)
@@ -108,7 +115,7 @@ func MapToEntity(rmap map[string]interface{}, entity *df.Entity, table string, u
 			continue
 		}
 		value := rmap[propertyName]
-		if value == nil{
+		if value == nil {
 			continue
 		}
 		argType := df.GetType(value)
@@ -124,7 +131,7 @@ func MapToEntity(rmap map[string]interface{}, entity *df.Entity, table string, u
 	}
 }
 func EntitySetNull(
-	entity *df.Entity, propertyName string, colInfo *df.ColumnInfo,update bool) {
+	entity *df.Entity, propertyName string, colInfo *df.ColumnInfo, update bool) {
 	switch colInfo.GoType {
 	case "string":
 		df.SetEntityValue(entity, propertyName, "")
@@ -158,10 +165,10 @@ func EntitySetNull(
 		}
 	}
 }
-func ConvFromWebDataInd(arg interface{},goType string)	interface{}{
-	colInfo:=new(df.ColumnInfo)
-	colInfo.GoType=goType
-	return ConvFromWebData(arg,colInfo,df.GetType(arg))
+func ConvFromWebDataInd(arg interface{}, goType string) interface{} {
+	colInfo := new(df.ColumnInfo)
+	colInfo.GoType = goType
+	return ConvFromWebData(arg, colInfo, df.GetType(arg))
 }
 func ConvFromWebData(
 	arg interface{}, colInfo *df.ColumnInfo, argType string) interface{} {
@@ -251,7 +258,7 @@ func ConvFromWebData(
 	case "time.Time":
 		switch argType {
 		case "string":
-			res, err := time.Parse(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string))
+			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string), loc)
 			if err != nil {
 				panic("Timeに変換出来ません。：" + arg.(string))
 			}
@@ -260,7 +267,7 @@ func ConvFromWebData(
 	case "df.Date":
 		switch argType {
 		case "string":
-			res, err := time.Parse(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string))
+			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string), loc)
 			if err != nil {
 				panic("Timeに変換出来ません。：" + arg.(string))
 			}
@@ -274,7 +281,10 @@ func ConvFromWebData(
 			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_FORMAT) {
 				parse = df.DISP_SQL_DEFAULT_DATE_FORMAT
 			}
-			res, err := time.Parse(parse, args)
+			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_TIME_FORMAT) {
+				parse = df.DISP_SQL_DEFAULT_DATE_TIME_FORMAT
+			}
+			res, err := time.ParseInLocation(parse, args, loc)
 			if err != nil {
 				panic("Timestampに変換出来ません。：" + args)
 			}
@@ -283,7 +293,7 @@ func ConvFromWebData(
 	case "pq.NullTime":
 		switch argType {
 		case "string":
-			res, err := time.Parse(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string))
+			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string), loc)
 			if err != nil {
 				panic("Timeに変換出来ません。：" + arg.(string))
 			}
@@ -292,7 +302,7 @@ func ConvFromWebData(
 	case "df.NullDate":
 		switch argType {
 		case "string":
-			res, err := time.Parse(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string))
+			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string), loc)
 			if err != nil {
 				panic("Timeに変換出来ません。：" + arg.(string))
 			}
@@ -306,7 +316,10 @@ func ConvFromWebData(
 			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_FORMAT) {
 				parse = df.DISP_SQL_DEFAULT_DATE_FORMAT
 			}
-			res, err := time.Parse(parse, args)
+			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_TIME_FORMAT) {
+				parse = df.DISP_SQL_DEFAULT_DATE_TIME_FORMAT
+			}
+			res, err := time.ParseInLocation(parse, args, loc)
 			if err != nil {
 				panic("Timestampに変換出来ません。：" + args)
 			}
@@ -407,7 +420,7 @@ func ConvFromWebDataForInvoke(
 	case "time.Time":
 		switch argType {
 		case "string":
-			res, err := time.Parse(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string))
+			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string), loc)
 			if err != nil {
 				panic("Timeに変換出来ません。：" + arg.(string))
 			}
@@ -416,7 +429,7 @@ func ConvFromWebDataForInvoke(
 	case "df.Date":
 		switch argType {
 		case "string":
-			res, err := time.Parse(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string))
+			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string), loc)
 			if err != nil {
 				panic("Timeに変換出来ません。：" + arg.(string))
 			}
@@ -430,7 +443,10 @@ func ConvFromWebDataForInvoke(
 			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_FORMAT) {
 				parse = df.DISP_SQL_DEFAULT_DATE_FORMAT
 			}
-			res, err := time.Parse(parse, args)
+			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_TIME_FORMAT) {
+				parse = df.DISP_SQL_DEFAULT_DATE_TIME_FORMAT
+			}
+			res, err := time.ParseInLocation(parse, args, loc)
 			if err != nil {
 				panic("Timestampに変換出来ません。：" + args)
 			}
@@ -439,7 +455,7 @@ func ConvFromWebDataForInvoke(
 	case "pq.NullTime":
 		switch argType {
 		case "string":
-			res, err := time.Parse(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string))
+			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_TIME_FORMAT, arg.(string), loc)
 			if err != nil {
 				panic("Timeに変換出来ません。：" + arg.(string))
 			}
@@ -448,7 +464,7 @@ func ConvFromWebDataForInvoke(
 	case "df.NullDate":
 		switch argType {
 		case "string":
-			res, err := time.Parse(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string))
+			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string), loc)
 			if err != nil {
 				panic("Timeに変換出来ません。：" + arg.(string))
 			}
@@ -462,7 +478,10 @@ func ConvFromWebDataForInvoke(
 			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_FORMAT) {
 				parse = df.DISP_SQL_DEFAULT_DATE_FORMAT
 			}
-			res, err := time.Parse(parse, args)
+			if len(args) == len(df.DISP_SQL_DEFAULT_DATE_TIME_FORMAT) {
+				parse = df.DISP_SQL_DEFAULT_DATE_TIME_FORMAT
+			}
+			res, err := time.ParseInLocation(parse, args, loc)
 			if err != nil {
 				panic("Timestampに変換出来ません。：" + args)
 			}
@@ -476,7 +495,7 @@ func ConvFromWebDataForInvoke(
 	return arg
 }
 func ConvWebData(arg interface{}) interface{} {
-	if arg==nil{
+	if arg == nil {
 		return nil
 	}
 	switch arg.(type) {
@@ -701,15 +720,15 @@ func GetOpMap2() map[string]string {
 }
 func SetCriteria(query interface{}, emap map[string]interface{}, table string) {
 	meta := df.DBMetaProvider_I.TableDbNameInstanceMap[table]
-	fmt.Printf("table %s meta %v\n",table,meta)
+	fmt.Printf("table %s meta %v\n", table, meta)
 	opMap := GetOpMap()
 	opMap2 := GetOpMap2()
 	field := (emap["fieldName"]).(string)
 	colInfo := (*meta).GetColumnInfoByPropertyName(field)
-	if colInfo==nil{
-		panic("ColInfo Not found :"+field)
+	if colInfo == nil {
+		panic("ColInfo Not found :" + field)
 	}
-//	fmt.Printf("colInfo %v gotype %v\n",colInfo,colInfo.GoType)
+	//	fmt.Printf("colInfo %v gotype %v\n",colInfo,colInfo.GoType)
 	operator := (emap["operator"]).(string)
 	op := opMap[operator]
 	setter := "Set" + df.InitCap(field) + "_" + op
@@ -717,10 +736,10 @@ func SetCriteria(query interface{}, emap map[string]interface{}, table string) {
 	setter2 := "Set" + df.InitCap(field) + "_" + op2
 	start := (emap["start"]).(string)
 	end := (emap["end"]).(string)
-//	fmt.Println("setter:" + setter)
-//	fmt.Println("sette2:" + setter2)
-//	fmt.Printf(" start:%v%T\n", start, start)
-//	fmt.Printf("end:%v%T\n", end, end)
+	//	fmt.Println("setter:" + setter)
+	//	fmt.Println("sette2:" + setter2)
+	//	fmt.Printf(" start:%v%T\n", start, start)
+	//	fmt.Printf("end:%v%T\n", end, end)
 	if operator == "" || start == "" {
 		return
 	}
