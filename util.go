@@ -267,9 +267,9 @@ func ConvFromWebData(
 	case "df.Date":
 		switch argType {
 		case "string":
-			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string), loc)
+			res, err := time.Parse(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string))
 			if err != nil {
-				panic("Timeに変換出来ません。：" + arg.(string))
+				panic("Dateに変換出来ません。：" + arg.(string))
 			}
 			return df.CreateDate(res)
 		}
@@ -302,9 +302,9 @@ func ConvFromWebData(
 	case "df.NullDate":
 		switch argType {
 		case "string":
-			res, err := time.ParseInLocation(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string), loc)
+			res, err := time.Parse(df.DISP_SQL_DEFAULT_DATE_FORMAT, arg.(string))
 			if err != nil {
-				panic("Timeに変換出来ません。：" + arg.(string))
+				panic("Dateに変換出来ません。：" + arg.(string))
 			}
 			return df.CreateNullDate(res)
 		}
